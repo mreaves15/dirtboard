@@ -1,12 +1,12 @@
 'use client'
 
-import { use, Suspense } from 'react'
+import { use, useState } from 'react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { useProperty } from '@/hooks/useProperties'
 import { usePropertyContacts } from '@/hooks/useContacts'
 import { usePropertyActivities } from '@/hooks/useActivities'
-import type { PropertyStatus } from '@/types/database'
+import type { PropertyStatus, PropertyUpdate } from '@/types/database'
 
 const statusColors: Record<PropertyStatus, string> = {
   new: 'bg-gray-500',
@@ -72,9 +72,110 @@ interface PageProps {
 
 export default function PropertyDetailPage({ params }: PageProps) {
   const { id } = use(params)
-  const { property, loading, error } = useProperty(id)
+  const { property, loading, error, update, refetch } = useProperty(id)
   const { contacts } = usePropertyContacts(id)
-  const { activities } = usePropertyActivities(id)
+  const { activities, logActivity, refetch: refetchActivities } = usePropertyActivities(id)
+
+  const [isEditing, setIsEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editForm, setEditForm] = useState<PropertyUpdate>({})
+
+  function startEdit() {
+    if (!property) return
+    setEditForm({
+      owner_name: property.owner_name,
+      address: property.address,
+      acreage: property.acreage,
+      zoning: property.zoning,
+      flood_zone: property.flood_zone,
+      subdivision: property.subdivision,
+      market_value: property.market_value,
+      estimated_retail_value: property.estimated_retail_value,
+      target_offer_price: property.target_offer_price,
+      tax_status: property.tax_status,
+      notes: property.notes,
+      status: property.status,
+      property_type: property.property_type,
+    })
+    setIsEditing(true)
+  }
+
+  function cancelEdit() {
+    setIsEditing(false)
+    setEditForm({})
+  }
+
+  async function saveEdit() {
+    setSaving(true)
+    try {
+      await update(editForm)
+      setIsEditing(false)
+      setEditForm({})
+    } catch (err) {
+      alert('Save failed: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleQualify() {
+    if (!property) return
+    if (!confirm('Mark this property as Qualified?')) return
+    try {
+      await update({ status: 'qualified' })
+      await logActivity({
+        property_id: id,
+        activity_type: 'status_change',
+        activity_date: new Date().toISOString(),
+        notes: 'Property marked as qualified',
+        created_by: 'user',
+      })
+      await refetchActivities()
+    } catch (err) {
+      alert('Failed: ' + (err instanceof Error ? err.message : String(err)))
+    }
+  }
+
+  async function handleDisqualify() {
+    if (!property) return
+    const reason = window.prompt('Disqualification reason (e.g. flood_zone, taxes_owed, no_access):')
+    if (!reason) return
+    const notes = window.prompt('Additional notes (optional):') || ''
+    try {
+      await update({
+        status: 'disqualified',
+        disqualification_reason: reason as PropertyUpdate['disqualification_reason'],
+        disqualification_notes: notes,
+      })
+      await logActivity({
+        property_id: id,
+        activity_type: 'status_change',
+        activity_date: new Date().toISOString(),
+        notes: `Disqualified: ${reason}${notes ? ' — ' + notes : ''}`,
+        created_by: 'user',
+      })
+      await refetchActivities()
+    } catch (err) {
+      alert('Failed: ' + (err instanceof Error ? err.message : String(err)))
+    }
+  }
+
+  async function handleLogContact() {
+    const notes = window.prompt('Contact notes (e.g. "Called, no answer" or "Spoke with owner, interested"):')
+    if (!notes) return
+    try {
+      await logActivity({
+        property_id: id,
+        activity_type: 'call',
+        activity_date: new Date().toISOString(),
+        notes,
+        created_by: 'user',
+      })
+      await refetchActivities()
+    } catch (err) {
+      alert('Failed: ' + (err instanceof Error ? err.message : String(err)))
+    }
+  }
 
   if (loading) {
     return (
@@ -137,11 +238,29 @@ export default function PropertyDetailPage({ params }: PageProps) {
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{property.owner_name}</h1>
+            {isEditing ? (
+              <input
+                className="text-3xl font-bold mb-2 border rounded px-2 py-1 w-full"
+                value={editForm.owner_name ?? ''}
+                onChange={e => setEditForm(f => ({ ...f, owner_name: e.target.value }))}
+                placeholder="Owner Name"
+              />
+            ) : (
+              <h1 className="text-3xl font-bold mb-2">{property.owner_name}</h1>
+            )}
             <p className="text-muted-foreground font-mono">{property.parcel_id}</p>
-            <p className="text-muted-foreground">
-              {property.address || property.subdivision || 'No address'}, {property.city || ''} {property.county} County
-            </p>
+            {isEditing ? (
+              <input
+                className="text-sm border rounded px-2 py-1 w-full mt-1"
+                value={editForm.address ?? ''}
+                onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))}
+                placeholder="Address"
+              />
+            ) : (
+              <p className="text-muted-foreground">
+                {property.address || property.subdivision || 'No address'}, {property.city || ''} {property.county} County
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <Badge className={statusColors[property.status]}>
@@ -152,18 +271,51 @@ export default function PropertyDetailPage({ params }: PageProps) {
 
         {/* Quick Actions */}
         <div className="flex gap-2 mb-8">
-          <button className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
-            ✓ Qualify
-          </button>
-          <button className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">
-            ✗ Disqualify
-          </button>
-          <button className="border px-4 py-2 rounded-md hover:bg-muted">
-            📞 Log Contact
-          </button>
-          <button className="border px-4 py-2 rounded-md hover:bg-muted">
-            ✏️ Edit
-          </button>
+          {isEditing ? (
+            <>
+              <button
+                onClick={saveEdit}
+                disabled={saving}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-60"
+              >
+                {saving ? 'Saving...' : '💾 Save'}
+              </button>
+              <button
+                onClick={cancelEdit}
+                disabled={saving}
+                className="border px-4 py-2 rounded-md hover:bg-muted disabled:opacity-60"
+              >
+                ✕ Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={handleQualify}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+              >
+                ✓ Qualify
+              </button>
+              <button
+                onClick={handleDisqualify}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+              >
+                ✗ Disqualify
+              </button>
+              <button
+                onClick={handleLogContact}
+                className="border px-4 py-2 rounded-md hover:bg-muted"
+              >
+                📞 Log Contact
+              </button>
+              <button
+                onClick={startEdit}
+                className="border px-4 py-2 rounded-md hover:bg-muted"
+              >
+                ✏️ Edit
+              </button>
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -175,23 +327,77 @@ export default function PropertyDetailPage({ params }: PageProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Property Type</p>
-                  <p className="font-medium capitalize">{property.property_type?.replace('_', ' ') || '-'}</p>
+                  {isEditing ? (
+                    <select
+                      className="border rounded px-2 py-1 w-full text-sm mt-1"
+                      value={editForm.property_type ?? ''}
+                      onChange={e => setEditForm(f => ({ ...f, property_type: e.target.value as PropertyUpdate['property_type'] }))}
+                    >
+                      <option value="">Select...</option>
+                      <option value="vacant_land">Vacant Land</option>
+                      <option value="residential">Residential</option>
+                      <option value="commercial">Commercial</option>
+                      <option value="agricultural">Agricultural</option>
+                      <option value="mobile_home">Mobile Home</option>
+                      <option value="other">Other</option>
+                    </select>
+                  ) : (
+                    <p className="font-medium capitalize">{property.property_type?.replace('_', ' ') || '-'}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Acreage</p>
-                  <p className="font-medium">{property.acreage?.toFixed(2) || '-'} acres</p>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="border rounded px-2 py-1 w-full text-sm mt-1"
+                      value={editForm.acreage ?? ''}
+                      onChange={e => setEditForm(f => ({ ...f, acreage: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                      placeholder="Acreage"
+                    />
+                  ) : (
+                    <p className="font-medium">{property.acreage?.toFixed(2) || '-'} acres</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Subdivision</p>
-                  <p className="font-medium">{property.subdivision || '-'}</p>
+                  {isEditing ? (
+                    <input
+                      className="border rounded px-2 py-1 w-full text-sm mt-1"
+                      value={editForm.subdivision ?? ''}
+                      onChange={e => setEditForm(f => ({ ...f, subdivision: e.target.value }))}
+                      placeholder="Subdivision"
+                    />
+                  ) : (
+                    <p className="font-medium">{property.subdivision || '-'}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Zoning</p>
-                  <p className="font-medium">{property.zoning || '-'}</p>
+                  {isEditing ? (
+                    <input
+                      className="border rounded px-2 py-1 w-full text-sm mt-1"
+                      value={editForm.zoning ?? ''}
+                      onChange={e => setEditForm(f => ({ ...f, zoning: e.target.value }))}
+                      placeholder="Zoning"
+                    />
+                  ) : (
+                    <p className="font-medium">{property.zoning || '-'}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Flood Zone</p>
-                  <p className="font-medium">{property.flood_zone || '-'}</p>
+                  {isEditing ? (
+                    <input
+                      className="border rounded px-2 py-1 w-full text-sm mt-1"
+                      value={editForm.flood_zone ?? ''}
+                      onChange={e => setEditForm(f => ({ ...f, flood_zone: e.target.value }))}
+                      placeholder="e.g. X, AE"
+                    />
+                  ) : (
+                    <p className="font-medium">{property.flood_zone || '-'}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">DOR Code</p>
@@ -214,17 +420,47 @@ export default function PropertyDetailPage({ params }: PageProps) {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Market Value</p>
-                  <p className="font-medium">{formatCurrency(property.market_value)}</p>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      className="border rounded px-2 py-1 w-full text-sm mt-1"
+                      value={editForm.market_value ?? ''}
+                      onChange={e => setEditForm(f => ({ ...f, market_value: e.target.value ? parseInt(e.target.value) : undefined }))}
+                      placeholder="Market Value"
+                    />
+                  ) : (
+                    <p className="font-medium">{formatCurrency(property.market_value)}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Est. Retail</p>
-                  <p className="font-medium text-green-600">{formatCurrency(property.estimated_retail_value)}</p>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      className="border rounded px-2 py-1 w-full text-sm mt-1"
+                      value={editForm.estimated_retail_value ?? ''}
+                      onChange={e => setEditForm(f => ({ ...f, estimated_retail_value: e.target.value ? parseInt(e.target.value) : undefined }))}
+                      placeholder="Est. Retail Value"
+                    />
+                  ) : (
+                    <p className="font-medium text-green-600">{formatCurrency(property.estimated_retail_value)}</p>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
                 <div>
                   <p className="text-sm text-muted-foreground">Target Offer</p>
-                  <p className="font-medium">{formatCurrency(property.target_offer_price)}</p>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      className="border rounded px-2 py-1 w-full text-sm mt-1"
+                      value={editForm.target_offer_price ?? ''}
+                      onChange={e => setEditForm(f => ({ ...f, target_offer_price: e.target.value ? parseInt(e.target.value) : undefined }))}
+                      placeholder="Target Offer"
+                    />
+                  ) : (
+                    <p className="font-medium">{formatCurrency(property.target_offer_price)}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Est. Margin</p>
@@ -245,7 +481,20 @@ export default function PropertyDetailPage({ params }: PageProps) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <p className="font-medium capitalize">{property.tax_status || '-'}</p>
+                  {isEditing ? (
+                    <select
+                      className="border rounded px-2 py-1 w-full text-sm mt-1"
+                      value={editForm.tax_status ?? ''}
+                      onChange={e => setEditForm(f => ({ ...f, tax_status: e.target.value as PropertyUpdate['tax_status'] }))}
+                    >
+                      <option value="">Select...</option>
+                      <option value="current">Current</option>
+                      <option value="delinquent">Delinquent</option>
+                      <option value="pending">Pending</option>
+                    </select>
+                  ) : (
+                    <p className="font-medium capitalize">{property.tax_status || '-'}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Annual Taxes</p>
@@ -285,10 +534,38 @@ export default function PropertyDetailPage({ params }: PageProps) {
             </section>
 
             {/* Notes */}
-            {property.notes && (
+            <section className="border rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Notes</h2>
+              {isEditing ? (
+                <textarea
+                  className="border rounded px-2 py-1 w-full text-sm"
+                  rows={6}
+                  value={editForm.notes ?? ''}
+                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Notes..."
+                />
+              ) : (
+                property.notes ? (
+                  <p className="whitespace-pre-wrap">{property.notes}</p>
+                ) : (
+                  <p className="text-muted-foreground">No notes</p>
+                )
+              )}
+            </section>
+
+            {/* Status (edit only) */}
+            {isEditing && (
               <section className="border rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Notes</h2>
-                <p className="whitespace-pre-wrap">{property.notes}</p>
+                <h2 className="text-xl font-semibold mb-4">Pipeline Status</h2>
+                <select
+                  className="border rounded px-2 py-1 w-full"
+                  value={editForm.status ?? property.status}
+                  onChange={e => setEditForm(f => ({ ...f, status: e.target.value as PropertyStatus }))}
+                >
+                  {(Object.keys(statusLabels) as PropertyStatus[]).map(s => (
+                    <option key={s} value={s}>{statusLabels[s]}</option>
+                  ))}
+                </select>
               </section>
             )}
 
