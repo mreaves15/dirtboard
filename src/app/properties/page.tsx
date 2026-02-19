@@ -129,6 +129,9 @@ export default function PropertiesPage() {
             <Link href="/properties" className="font-medium">
               Properties
             </Link>
+            <Link href="/buyers" className="text-muted-foreground hover:text-foreground">
+              Buyers
+            </Link>
           </nav>
         </div>
       </header>

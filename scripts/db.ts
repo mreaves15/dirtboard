@@ -15,6 +15,9 @@
  *   add-contact <property_id> <type> <value> [label] - Add contact
  *   log <property_id> <notes>     - Log activity
  *   needs-validation              - List properties needing due diligence
+ *   buyers                        - List all buyers/builders
+ *   add-buyer <json>              - Add buyer ({"name":"...","type":"builder","county":"Marion"})
+ *   update-buyer <id> <json>      - Update buyer
  */
 
 import * as dotenv from 'dotenv'
@@ -168,9 +171,49 @@ async function main() {
       break
     }
 
+    // === BUYER COMMANDS ===
+    case 'buyers': {
+      const { data, error } = await supabase
+        .from('buyers')
+        .select('id, name, company, type, county, counties, phone, email, status')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      console.log(JSON.stringify(data, null, 2))
+      break
+    }
+
+    case 'add-buyer': {
+      const [json] = args
+      const buyer = JSON.parse(json)
+      if (!buyer.buy_box) buyer.buy_box = {}
+      const { data, error } = await supabase
+        .from('buyers')
+        .insert(buyer)
+        .select()
+        .single()
+      if (error) throw error
+      console.log('Added buyer:', data.id, data.name)
+      break
+    }
+
+    case 'update-buyer': {
+      const [id, json] = args
+      const updates = JSON.parse(json)
+      updates.updated_at = new Date().toISOString()
+      const { data, error } = await supabase
+        .from('buyers')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      console.log('Updated buyer:', data.id, data.name)
+      break
+    }
+
     default:
       console.log(`Unknown command: ${command}`)
-      console.log('Commands: list, get, find-parcel, add, update, disqualify, add-contact, log, needs-validation')
+      console.log('Commands: list, get, find-parcel, add, update, disqualify, add-contact, log, needs-validation, buyers, add-buyer, update-buyer')
       process.exit(1)
   }
 }

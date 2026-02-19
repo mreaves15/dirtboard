@@ -19,6 +19,12 @@ export default function Home() {
             >
               Properties
             </Link>
+            <Link 
+              href="/buyers" 
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Buyers
+            </Link>
           </nav>
         </div>
       </header>

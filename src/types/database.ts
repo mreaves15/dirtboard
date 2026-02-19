@@ -243,6 +243,43 @@ export interface SavedView {
   created_at: string
 }
 
+// Buyer/Builder types
+export type BuyerType = 'builder' | 'investor' | 'agent' | 'wholesaler' | 'other'
+export type BuyerStatus = 'active' | 'contacted' | 'working' | 'inactive'
+
+export interface BuyBox {
+  zip_codes?: string[]
+  min_lot_size?: string
+  max_lot_size?: string
+  max_price?: number
+  min_price?: number
+  requirements?: string
+  lot_types?: string[]
+  preferred_subdivisions?: string[]
+}
+
+export interface Buyer {
+  id: string
+  name: string
+  company?: string
+  type: BuyerType
+  county?: string
+  counties?: string[]
+  buy_box: BuyBox
+  phone?: string
+  email?: string
+  website?: string
+  source?: string
+  notes?: string
+  status: BuyerStatus
+  last_contact?: string
+  created_at: string
+  updated_at: string
+}
+
+export type BuyerInsert = Omit<Buyer, 'id' | 'created_at' | 'updated_at'>
+export type BuyerUpdate = Partial<BuyerInsert>
+
 // Insert types (omit auto-generated fields)
 export type PropertyInsert = Omit<Property, 'id' | 'created_at' | 'updated_at'>
 export type PropertyUpdate = Partial<PropertyInsert>
@@ -282,6 +319,11 @@ export interface Database {
         Row: SavedView
         Insert: SavedViewInsert
         Update: SavedViewUpdate
+      }
+      buyers: {
+        Row: Buyer
+        Insert: BuyerInsert
+        Update: BuyerUpdate
       }
     }
   }
