@@ -73,6 +73,11 @@ function formatCurrency(value: number | undefined): string {
   }).format(value)
 }
 
+type SortField = 'county' | 'acreage' | 'market_value'
+type SortDirection = 'asc' | 'desc' | null
+interface SortConfig { field: SortField | null; direction: SortDirection }
+interface RangeFilter { min: string; max: string }
+
 export default function PropertiesPage() {
   const router = useRouter()
   const { properties, loading, error } = useProperties()
@@ -80,6 +85,18 @@ export default function PropertiesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [countyFilter, setCountyFilter] = useState<string>('all')
   const [showDisqualified, setShowDisqualified] = useState(false)
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null })
+  const [acreageRange, setAcreageRange] = useState<RangeFilter>({ min: '', max: '' })
+  const [valueRange, setValueRange] = useState<RangeFilter>({ min: '', max: '' })
+  const [dateFilter, setDateFilter] = useState<string>('')
+
+  function handleSort(field: SortField) {
+    setSortConfig(prev => {
+      if (prev.field !== field) return { field, direction: 'asc' }
+      if (prev.direction === 'asc') return { field, direction: 'desc' }
+      return { field: null, direction: null }
+    })
+  }
 
   // Build filter options from loaded data
   const filterOptions = useMemo(() => {
@@ -113,9 +130,58 @@ export default function PropertiesPage() {
         if (!searchable.includes(searchLower)) return false
       }
       
+
+
+      // Acreage range filter
+      if (acreageRange.min || acreageRange.max) {
+        if (property.acreage == null) return false
+        const min = acreageRange.min ? parseFloat(acreageRange.min) : -Infinity
+        const max = acreageRange.max ? parseFloat(acreageRange.max) : Infinity
+        if (isNaN(min) || isNaN(max)) return false
+        if (property.acreage < min || property.acreage > max) return false
+      }
+
+      // Market value range filter
+      if (valueRange.min || valueRange.max) {
+        if (property.market_value == null) return false
+        const min = valueRange.min ? parseFloat(valueRange.min) : -Infinity
+        const max = valueRange.max ? parseFloat(valueRange.max) : Infinity
+        if (isNaN(min) || isNaN(max)) return false
+        if (property.market_value < min || property.market_value > max) return false
+      }
+
+      // Date filter
+      if (dateFilter && property.created_at) {
+        const filterDate = new Date(dateFilter)
+        const propDate = new Date(property.created_at)
+        if (propDate < filterDate) return false
+      }
+
       return true
     })
-  }, [properties, search, statusFilter, countyFilter, showDisqualified])
+  }, [properties, search, statusFilter, countyFilter, showDisqualified, acreageRange, valueRange, dateFilter])
+
+
+  const sortedProperties = useMemo(() => {
+    if (!sortConfig.field || !sortConfig.direction) return filteredProperties
+    return [...filteredProperties].sort((a, b) => {
+      const field = sortConfig.field!
+      const aVal = a[field]
+      const bVal = b[field]
+
+      if (aVal == null && bVal == null) return 0
+      if (aVal == null) return 1
+      if (bVal == null) return -1
+
+      let cmp: number
+      if (typeof aVal === 'string') {
+        cmp = aVal.localeCompare(bVal as string)
+      } else {
+        cmp = (aVal as number) - (bVal as number)
+      }
+      return sortConfig.direction === 'desc' ? -cmp : cmp
+    })
+  }, [filteredProperties, sortConfig])
 
   return (
     <div className="min-h-screen bg-background">
@@ -185,6 +251,46 @@ export default function PropertiesPage() {
             </SelectContent>
           </Select>
 
+          <Input
+            type="number"
+            placeholder="Min Acres"
+            value={acreageRange.min}
+            onChange={(e) =>
+              setAcreageRange(prev => ({ ...prev, min: e.target.value }))
+            }
+            className="w-[140px]"
+          />
+          <Input
+            type="number"
+            placeholder="Max Acres"
+            value={acreageRange.max}
+            onChange={(e) =>
+              setAcreageRange(prev => ({ ...prev, max: e.target.value }))
+            }
+            className="w-[140px]"
+          />
+          <Input
+            type="number"
+            placeholder="Min $"
+            value={valueRange.min}
+            onChange={(e) => setValueRange(prev => ({ ...prev, min: e.target.value }))}
+            className="w-[120px]"
+          />
+          <Input
+            type="number"
+            placeholder="Max $"
+            value={valueRange.max}
+            onChange={(e) => setValueRange(prev => ({ ...prev, max: e.target.value }))}
+            className="w-[120px]"
+          />
+          <Input
+            type="date"
+            aria-label="Date Added"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="w-[160px]"
+          />
+
           <div className="flex items-center gap-2">
             <Checkbox
               id="showDisqualified"
@@ -214,25 +320,52 @@ export default function PropertiesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Status</TableHead>
-                <TableHead>County</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort('county')}
+                    className="flex items-center gap-1 font-medium hover:text-primary"
+                  >
+                    County{' '}
+                    {sortConfig.field === 'county' &&
+                      (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </button>
+                </TableHead>
                 <TableHead>Parcel ID</TableHead>
                 <TableHead>Owner</TableHead>
                 <TableHead>Address</TableHead>
-                <TableHead className="text-right">Acres</TableHead>
-                <TableHead className="text-right">Market Value</TableHead>
+                <TableHead className="text-right">
+                  <button
+                    onClick={() => handleSort('acreage')}
+                    className="ml-auto flex items-center gap-1 font-medium hover:text-primary"
+                  >
+                    Acres{' '}
+                    {sortConfig.field === 'acreage' &&
+                      (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button
+                    onClick={() => handleSort('market_value')}
+                    className="ml-auto flex items-center gap-1 font-medium hover:text-primary"
+                  >
+                    Market Value{' '}
+                    {sortConfig.field === 'market_value' &&
+                      (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">Est. Retail</TableHead>
                 <TableHead className="text-right">Margin</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProperties.length === 0 ? (
+              {sortedProperties.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     No properties found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProperties.map((property) => (
+                sortedProperties.map((property) => (
                   <TableRow 
                     key={property.id} 
                     className="cursor-pointer hover:bg-muted/50"

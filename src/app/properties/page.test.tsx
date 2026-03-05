@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import PropertiesPage from './page'
 import { mockProperties } from '@/test/mocks'
 
@@ -33,7 +34,9 @@ describe('Properties Page', () => {
   it('renders the page heading', async () => {
     render(<PropertiesPage />)
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /properties/i })).toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: /properties/i })
+      ).toBeInTheDocument()
     })
   })
 
@@ -47,7 +50,9 @@ describe('Properties Page', () => {
   it('renders the add property button', async () => {
     render(<PropertiesPage />)
     await waitFor(() => {
-      expect(screen.getByRole('link', { name: /add property/i })).toBeInTheDocument()
+      expect(
+        screen.getByRole('link', { name: /add property/i })
+      ).toBeInTheDocument()
     })
   })
 
@@ -77,22 +82,200 @@ describe('Properties Page', () => {
   it('renders status filter dropdown', async () => {
     render(<PropertiesPage />)
     await waitFor(() => {
-      expect(screen.getByRole('combobox', { name: /status/i })).toBeInTheDocument()
+      expect(
+        screen.getByRole('combobox', { name: /status/i })
+      ).toBeInTheDocument()
     })
   })
 
   it('renders county filter dropdown', async () => {
     render(<PropertiesPage />)
     await waitFor(() => {
-      expect(screen.getByRole('combobox', { name: /county/i })).toBeInTheDocument()
+      expect(
+        screen.getByRole('combobox', { name: /county/i })
+      ).toBeInTheDocument()
     })
   })
 
   it('shows correct property count', async () => {
     render(<PropertiesPage />)
     await waitFor(() => {
-      // 2 visible (LAIESKI qualified, BLACKBURN new), 1 disqualified hidden
-      expect(screen.getByText(/showing 2 of 3/i)).toBeInTheDocument()
+      // 4 visible (LAIESKI qualified, BLACKBURN new, HIGHLANDS new, PUTNAM NULL new), 1 disqualified hidden
+      expect(screen.getByText(/showing 4 of 5/i)).toBeInTheDocument()
     })
+  })
+
+  it('renders sortable column headers for County, Acres, Market Value', async () => {
+    render(<PropertiesPage />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /^county/i })
+      ).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /acres/i })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /market value/i })
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('sorts by county ascending on first click', async () => {
+    const user = userEvent.setup()
+    render(<PropertiesPage />)
+
+    const countySort = await screen.findByRole('button', { name: /^county/i })
+    await user.click(countySort)
+
+    const rows = screen.getAllByRole('row')
+    const firstDataRow = rows[1]
+    expect(within(firstDataRow).getByText('Highlands')).toBeInTheDocument()
+  })
+
+  it('sorts by county descending on second click', async () => {
+    const user = userEvent.setup()
+    render(<PropertiesPage />)
+
+    const countySort = await screen.findByRole('button', { name: /^county/i })
+    await user.click(countySort)
+    await user.click(countySort)
+
+    const rows = screen.getAllByRole('row')
+    const firstDataRow = rows[1]
+    expect(within(firstDataRow).getByText('Putnam')).toBeInTheDocument()
+  })
+
+  it('clears sort on third click', async () => {
+    const user = userEvent.setup()
+    render(<PropertiesPage />)
+
+    const countySort = await screen.findByRole('button', { name: /^county/i })
+    await user.click(countySort)
+    await user.click(countySort)
+    await user.click(countySort)
+
+    const rows = screen.getAllByRole('row')
+    const firstDataRow = rows[1]
+    expect(within(firstDataRow).getByText(/LAIESKI JOHN EST/i)).toBeInTheDocument()
+  })
+
+  it('sorts null values to end when sorting acres', async () => {
+    const user = userEvent.setup()
+    render(<PropertiesPage />)
+
+    const acresSort = await screen.findByRole('button', { name: /acres/i })
+    await user.click(acresSort)
+
+    const rows = screen.getAllByRole('row')
+    const lastDataRow = rows[rows.length - 1]
+    expect(
+      within(lastDataRow).getByText(/PUTNAM NULL ACRE\/VALUE/i)
+    ).toBeInTheDocument()
+  })
+
+  it('renders min and max acreage inputs', async () => {
+    render(<PropertiesPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/min acres/i)).toBeInTheDocument()
+      expect(screen.getByPlaceholderText(/max acres/i)).toBeInTheDocument()
+    })
+  })
+
+  it('filters properties by minimum acreage', async () => {
+    const user = userEvent.setup()
+    render(<PropertiesPage />)
+
+    const minAcreInput = await screen.findByPlaceholderText(/min acres/i)
+    await user.type(minAcreInput, '1')
+
+    expect(screen.getByText(/HIGHLANDS TEST OWNER/i)).toBeInTheDocument()
+    expect(screen.queryByText(/LAIESKI JOHN EST/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/BLACKBURN MARY EST/i)).not.toBeInTheDocument()
+  })
+
+  it('filters properties by maximum acreage', async () => {
+    const user = userEvent.setup()
+    render(<PropertiesPage />)
+
+    const maxAcreInput = await screen.findByPlaceholderText(/max acres/i)
+    await user.type(maxAcreInput, '0.22')
+
+    expect(screen.getByText(/LAIESKI JOHN EST/i)).toBeInTheDocument()
+    expect(screen.queryByText(/BLACKBURN MARY EST/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/HIGHLANDS TEST OWNER/i)).not.toBeInTheDocument()
+  })
+
+  it('excludes null acreage from range filter', async () => {
+    const user = userEvent.setup()
+    render(<PropertiesPage />)
+
+    const minAcreInput = await screen.findByPlaceholderText(/min acres/i)
+    await user.type(minAcreInput, '0')
+
+    expect(
+      screen.queryByText(/PUTNAM NULL ACRE\/VALUE/i)
+    ).not.toBeInTheDocument()
+  })
+
+  it('ignores empty string inputs', async () => {
+    const user = userEvent.setup()
+    render(<PropertiesPage />)
+
+    const minAcreInput = await screen.findByPlaceholderText(/min acres/i)
+    await user.type(minAcreInput, '1')
+    await user.clear(minAcreInput)
+
+    // back to default 4 visible
+    expect(screen.getByText(/LAIESKI JOHN EST/i)).toBeInTheDocument()
+    expect(screen.getByText(/BLACKBURN MARY EST/i)).toBeInTheDocument()
+    expect(screen.getByText(/HIGHLANDS TEST OWNER/i)).toBeInTheDocument()
+    expect(screen.getByText(/PUTNAM NULL ACRE\/VALUE/i)).toBeInTheDocument()
+  })
+
+  it('renders min/max value inputs', async () => {
+    render(<PropertiesPage />)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/min \$/i)).toBeInTheDocument()
+      expect(screen.getByPlaceholderText(/max \$/i)).toBeInTheDocument()
+    })
+  })
+
+  it('filters by minimum market value', async () => {
+    const user = userEvent.setup()
+    render(<PropertiesPage />)
+
+    const minValueInput = await screen.findByPlaceholderText(/min \$/i)
+    await user.type(minValueInput, '10000')
+
+    expect(screen.getByText(/HIGHLANDS TEST OWNER/i)).toBeInTheDocument()
+    expect(screen.queryByText(/LAIESKI JOHN EST/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/BLACKBURN MARY EST/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/PUTNAM NULL ACRE\/VALUE/i)
+    ).not.toBeInTheDocument()
+  })
+
+  it('renders a date input', async () => {
+    render(<PropertiesPage />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/date added/i)).toBeInTheDocument()
+    })
+  })
+
+  it('filters properties added on or after selected date', async () => {
+    const user = userEvent.setup()
+    render(<PropertiesPage />)
+
+    const dateInput = await screen.findByLabelText(/date added/i)
+    await user.type(dateInput, '2026-02-15')
+
+    expect(screen.getByText(/HIGHLANDS TEST OWNER/i)).toBeInTheDocument()
+    expect(screen.queryByText(/LAIESKI JOHN EST/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/BLACKBURN MARY EST/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/PUTNAM NULL ACRE\/VALUE/i)
+    ).not.toBeInTheDocument()
   })
 })

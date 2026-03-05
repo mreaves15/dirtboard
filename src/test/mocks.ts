@@ -50,6 +50,33 @@ export const mockProperties: Property[] = [
     created_at: '2026-02-03T12:00:00Z',
     updated_at: '2026-02-03T12:00:00Z',
   },
+  {
+    id: 'prop-4',
+    parcel_id: 'HL-00-00-0000-0000',
+    county: 'Highlands',
+    owner_name: 'HIGHLANDS TEST OWNER',
+    source: 'probate',
+    status: 'new',
+    pipeline_stage: 1,
+    property_type: 'raw_land',
+    acreage: 5.0,
+    market_value: 25000,
+    created_at: '2026-03-01T12:00:00Z',
+    updated_at: '2026-03-01T12:00:00Z',
+  },
+  {
+    id: 'prop-5',
+    parcel_id: 'PT-00-00-0000-0000',
+    county: 'Putnam',
+    owner_name: 'PUTNAM NULL ACRE/VALUE',
+    source: 'probate',
+    status: 'new',
+    pipeline_stage: 1,
+    acreage: undefined,
+    market_value: undefined,
+    created_at: '2026-01-15T12:00:00Z',
+    updated_at: '2026-01-15T12:00:00Z',
+  },
 ]
 
 export const mockContacts: Contact[] = [
