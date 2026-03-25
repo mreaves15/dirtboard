@@ -4,6 +4,7 @@ export type PropertyStatus =
   | 'new'
   | 'appraiser_review'
   | 'flood_check'
+  | 'buyer_pool_check'
   | 'skip_trace'
   | 'tax_check'
   | 'lien_check'

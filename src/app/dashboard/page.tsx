@@ -6,6 +6,7 @@ const statusColors: Record<PropertyStatus, string> = {
   new: 'bg-gray-100 text-gray-800',
   appraiser_review: 'bg-yellow-100 text-yellow-800',
   flood_check: 'bg-yellow-100 text-yellow-800',
+  buyer_pool_check: 'bg-yellow-100 text-yellow-800',
   skip_trace: 'bg-yellow-100 text-yellow-800',
   tax_check: 'bg-yellow-100 text-yellow-800',
   lien_check: 'bg-yellow-100 text-yellow-800',
