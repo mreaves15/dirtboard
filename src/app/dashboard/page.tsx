@@ -27,6 +27,7 @@ const statusLabels: Record<PropertyStatus, string> = {
   new: 'New',
   appraiser_review: 'Appraiser Review',
   flood_check: 'Flood Check',
+  buyer_pool_check: 'Buyer Pool Check',
   skip_trace: 'Skip Trace',
   tax_check: 'Tax Check',
   lien_check: 'Lien Check',

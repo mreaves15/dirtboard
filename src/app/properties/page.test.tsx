@@ -14,7 +14,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 // Mock the useProperties hook with a spy so we can check what filters are passed
-const mockUseProperties = vi.fn(() => ({
+const mockUseProperties = vi.fn((_filters?: { status?: string }) => ({
   properties: mockProperties,
   loading: false,
   error: null,
@@ -25,7 +25,7 @@ const mockUseProperties = vi.fn(() => ({
 }))
 
 vi.mock('@/hooks/useProperties', () => ({
-  useProperties: (...args: unknown[]) => mockUseProperties(...args),
+  useProperties: (filters?: { status?: string }) => mockUseProperties(filters),
 }))
 
 describe('Properties Page', () => {
