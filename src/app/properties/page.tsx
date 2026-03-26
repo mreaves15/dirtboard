@@ -49,6 +49,7 @@ const statusLabels: Record<PropertyStatus, string> = {
   new: 'New',
   appraiser_review: 'Appraiser Review',
   flood_check: 'Flood Check',
+  buyer_pool_check: 'Buyer Pool Check',
   skip_trace: 'Skip Trace',
   tax_check: 'Tax Check',
   lien_check: 'Lien Check',
@@ -81,9 +82,9 @@ interface RangeFilter { min: string; max: string }
 
 export default function PropertiesPage() {
   const router = useRouter()
-  const { properties, loading, error } = useProperties()
-  const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const { properties, loading, error } = useProperties({ status: statusFilter })
+  const [search, setSearch] = useState('')
   const [countyFilter, setCountyFilter] = useState<string>('all')
   const [showDisqualified, setShowDisqualified] = useState(false)
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null })
@@ -101,17 +102,13 @@ export default function PropertiesPage() {
 
   // Build filter options from loaded data
   const filterOptions = useMemo(() => {
-    const statuses = [...new Set(properties.map(p => p.status))]
     const counties = [...new Set(properties.map(p => p.county))]
-    return { statuses, counties }
+    return { counties }
   }, [properties])
 
   // Filter properties client-side
   const filteredProperties = useMemo(() => {
     return properties.filter(property => {
-      // Status filter
-      if (statusFilter !== 'all' && property.status !== statusFilter) return false
-      
       // County filter
       if (countyFilter !== 'all' && property.county !== countyFilter) return false
       
@@ -160,7 +157,7 @@ export default function PropertiesPage() {
 
       return true
     })
-  }, [properties, search, statusFilter, countyFilter, showDisqualified, acreageRange, valueRange, dateFilter])
+  }, [properties, search, countyFilter, showDisqualified, acreageRange, valueRange, dateFilter])
 
 
   const sortedProperties = useMemo(() => {
@@ -230,9 +227,9 @@ export default function PropertiesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              {filterOptions.statuses.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {statusLabels[status as PropertyStatus] || status}
+              {Object.entries(statusLabels).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
                 </SelectItem>
               ))}
             </SelectContent>

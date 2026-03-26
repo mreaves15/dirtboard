@@ -13,17 +13,19 @@ vi.mock('next/navigation', () => ({
   }),
 }))
 
-// Mock the useProperties hook
+// Mock the useProperties hook with a spy so we can check what filters are passed
+const mockUseProperties = vi.fn(() => ({
+  properties: mockProperties,
+  loading: false,
+  error: null,
+  refetch: vi.fn(),
+  addProperty: vi.fn(),
+  editProperty: vi.fn(),
+  removeProperty: vi.fn(),
+}))
+
 vi.mock('@/hooks/useProperties', () => ({
-  useProperties: () => ({
-    properties: mockProperties,
-    loading: false,
-    error: null,
-    refetch: vi.fn(),
-    addProperty: vi.fn(),
-    editProperty: vi.fn(),
-    removeProperty: vi.fn(),
-  }),
+  useProperties: (...args: unknown[]) => mockUseProperties(...args),
 }))
 
 describe('Properties Page', () => {
@@ -85,6 +87,17 @@ describe('Properties Page', () => {
       expect(
         screen.getByRole('combobox', { name: /status/i })
       ).toBeInTheDocument()
+    })
+  })
+
+  it('passes status filter to useProperties when set', async () => {
+    render(<PropertiesPage />)
+
+    await waitFor(() => {
+      // On initial render, useProperties should be called with { status: 'all' }
+      expect(mockUseProperties).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'all' })
+      )
     })
   })
 

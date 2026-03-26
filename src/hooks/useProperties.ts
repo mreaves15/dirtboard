@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getProperties, getProperty, createProperty, updateProperty, deleteProperty } from '@/lib/api'
 import type { Property, PropertyInsert, PropertyUpdate } from '@/types/database'
 
-export function useProperties() {
+export function useProperties(filters?: { status?: string }) {
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -13,14 +13,14 @@ export function useProperties() {
     try {
       setLoading(true)
       setError(null)
-      const data = await getProperties()
+      const data = await getProperties(filters)
       setProperties(data)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch properties'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [filters?.status])
 
   useEffect(() => {
     fetchProperties()
