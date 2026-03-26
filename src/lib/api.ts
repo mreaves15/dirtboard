@@ -17,12 +17,17 @@ import type {
 
 // ============ Properties ============
 
-export async function getProperties() {
-  const { data, error } = await supabase
+export async function getProperties(filters?: { status?: string }) {
+  let query = supabase
     .from('properties')
     .select('*')
-    .order('created_at', { ascending: false })
-  
+
+  if (filters?.status && filters.status !== 'all') {
+    query = query.eq('status', filters.status)
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false })
+
   if (error) throw error
   return data as Property[]
 }
