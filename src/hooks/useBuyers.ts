@@ -1,14 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabase } from '@/lib/supabase'
 import type { Buyer, BuyerInsert, BuyerUpdate } from '@/types/database'
 
-// Use untyped client for buyers table (not in generated types)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- buyers table is not in the generated Database type
+const db = (): any => getSupabase()
 
 export function useBuyers() {
   const [buyers, setBuyers] = useState<Buyer[]>([])
@@ -17,7 +14,7 @@ export function useBuyers() {
 
   const fetchBuyers = useCallback(async () => {
     setLoading(true)
-    const { data, error: fetchError } = await supabase
+    const { data, error: fetchError } = await db()
       .from('buyers')
       .select('*')
       .order('created_at', { ascending: false })
@@ -36,7 +33,7 @@ export function useBuyers() {
   }, [fetchBuyers])
 
   const addBuyer = async (buyer: BuyerInsert) => {
-    const { data, error: insertError } = await supabase
+    const { data, error: insertError } = await db()
       .from('buyers')
       .insert(buyer)
       .select()
@@ -48,7 +45,7 @@ export function useBuyers() {
   }
 
   const updateBuyer = async (id: string, updates: BuyerUpdate) => {
-    const { data, error: updateError } = await supabase
+    const { data, error: updateError } = await db()
       .from('buyers')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -61,7 +58,7 @@ export function useBuyers() {
   }
 
   const deleteBuyer = async (id: string) => {
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await db()
       .from('buyers')
       .delete()
       .eq('id', id)
