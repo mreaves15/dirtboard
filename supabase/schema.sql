@@ -73,7 +73,7 @@ CREATE TABLE properties (
   status TEXT NOT NULL DEFAULT 'new',
   disqualification_reason TEXT,
   disqualification_notes TEXT,
-  pipeline_stage INTEGER NOT NULL DEFAULT 1,
+
   
   -- Offer & Deal Tracking
   offer_amount DECIMAL,
@@ -152,7 +152,7 @@ CREATE TABLE saved_views (
 -- Indexes for common queries
 CREATE INDEX idx_properties_status ON properties(status);
 CREATE INDEX idx_properties_county ON properties(county);
-CREATE INDEX idx_properties_pipeline_stage ON properties(pipeline_stage);
+
 CREATE INDEX idx_properties_parcel_id ON properties(parcel_id);
 CREATE INDEX idx_properties_created_at ON properties(created_at);
 CREATE INDEX idx_contacts_property_id ON contacts(property_id);

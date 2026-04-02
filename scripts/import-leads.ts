@@ -81,8 +81,6 @@ async function importLeads(csvPath: string) {
       owner_name: record.Owner_Name,
       source: record.Lead_Source?.toLowerCase() || 'probate',
       status: mapStatus(record.Status),
-      pipeline_stage: mapStatus(record.Status) === 'qualified' ? 4 : 1,
-      
       // Property details
       address: record.Property_Address || null,
       subdivision: record.Subdivision || null,

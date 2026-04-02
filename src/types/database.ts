@@ -1,45 +1,58 @@
 // Database types based on DirtBoard PRD
 
-export type PropertyStatus = 
+export type PropertyStatus =
+  // Screening
   | 'new'
   | 'appraiser_review'
   | 'flood_check'
   | 'buyer_pool_check'
   | 'skip_trace'
+  // Due Diligence
   | 'tax_check'
   | 'lien_check'
-  | 'access_check'
-  | 'valuation'
+  | 'title_review'
+  // Ready
   | 'qualified'
+  // Deal
   | 'contacted'
   | 'offer_made'
+  | 'negotiating'
   | 'under_contract'
   | 'closed_won'
   | 'closed_lost'
+  // Disposition
   | 'listed_for_sale'
   | 'sold'
+  // Terminal
   | 'disqualified'
 
 export type DisqualificationReason =
+  // Property issues
   | 'not_raw_land'
   | 'outlot'
-  | 'row'
-  | 'easement'
-  | 'partial_interest'
-  | 'too_small'
-  | 'too_large'
   | 'too_expensive'
-  | 'has_hoa'
   | 'flood_zone'
-  | 'tax_deed_pending'
-  | 'excessive_taxes'
-  | 'has_liens'
-  | 'clouded_title'
-  | 'landlocked'
-  | 'no_utilities'
   | 'wetlands'
+  | 'landlocked'
+  | 'conservation_zoning'
+  // Title/ownership issues
+  | 'already_sold'
+  | 'already_transferred'
+  | 'clouded_title'
+  | 'has_liens'
+  | 'excessive_taxes'
+  | 'tax_deed_pending'
+  // Market issues
+  | 'weak_buyer_pool'
   | 'insufficient_margin'
-  | 'seller_is_flipper'
+  | 'investor_owned'
+  // Search/match failures
+  | 'parcel_not_found'
+  | 'no_pa_match'
+  | 'no_property'
+  | 'wrong_person'
+  | 'unplatted_complex'
+  // Other
   | 'other'
 
 export type PropertyType = 
@@ -168,7 +181,7 @@ export interface Property {
   status: PropertyStatus
   disqualification_reason?: DisqualificationReason
   disqualification_notes?: string
-  pipeline_stage: number
+
   
   // Offer & Deal Tracking
   offer_amount?: number

@@ -27,7 +27,6 @@ export const mockProperties: Property[] = [
     estimated_margin_percent: 220,
     deal_verdict: 'good_deal',
     status: 'qualified',
-    pipeline_stage: 9,
     notes: 'Estate owns 3 properties. NY heirs.',
   },
   {
@@ -57,7 +56,6 @@ export const mockProperties: Property[] = [
     estimated_margin_percent: 233,
     deal_verdict: 'good_deal',
     status: 'qualified',
-    pipeline_stage: 9,
     notes: 'Phoenix AZ heir. Title shows RICHINS SYLVIA BLACKBURN.',
   },
   {
@@ -87,7 +85,6 @@ export const mockProperties: Property[] = [
     estimated_margin_percent: 233,
     deal_verdict: 'good_deal',
     status: 'qualified',
-    pipeline_stage: 9,
     notes: 'BEST OPPORTUNITY - largest lot! Marlene age 91.',
   },
   {
@@ -112,7 +109,6 @@ export const mockProperties: Property[] = [
     is_out_of_state: true,
     is_inherited: true,
     status: 'new',
-    pipeline_stage: 1,
     notes: 'Vacant lot Block 6 Lot 29. Out-of-state owner (NY).',
   },
   {
@@ -133,7 +129,6 @@ export const mockProperties: Property[] = [
     status: 'disqualified',
     disqualification_reason: 'flood_zone',
     disqualification_notes: 'Property is borderline Zone AE - too risky',
-    pipeline_stage: 3,
   },
   {
     id: '6',
@@ -155,7 +150,6 @@ export const mockProperties: Property[] = [
     status: 'disqualified',
     disqualification_reason: 'not_raw_land',
     disqualification_notes: 'Has house - $217k improvements',
-    pipeline_stage: 2,
   },
   {
     id: '7',
@@ -176,7 +170,6 @@ export const mockProperties: Property[] = [
     status: 'disqualified',
     disqualification_reason: 'not_raw_land',
     disqualification_notes: 'Single family rental property',
-    pipeline_stage: 2,
   },
   {
     id: '8',
@@ -196,7 +189,6 @@ export const mockProperties: Property[] = [
     status: 'disqualified',
     disqualification_reason: 'not_raw_land',
     disqualification_notes: 'Single family home',
-    pipeline_stage: 2,
   },
 ]
 

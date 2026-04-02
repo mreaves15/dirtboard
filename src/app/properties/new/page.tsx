@@ -79,7 +79,6 @@ export default function AddPropertyPage() {
         owner_name: formData.owner_name.trim(),
         source: formData.source,
         status: 'new',
-        pipeline_stage: 1,
         property_type: 'raw_land',
         address: formData.address.trim() || undefined,
         subdivision: formData.subdivision.trim() || undefined,

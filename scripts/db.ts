@@ -78,7 +78,6 @@ async function main() {
         .from('properties')
         .insert({
           status: 'new',
-          pipeline_stage: 1,
           property_type: 'raw_land',
           ...property
         })
@@ -113,7 +112,6 @@ async function main() {
           status: 'disqualified',
           disqualification_reason: reason,
           disqualification_notes: notes || null,
-          pipeline_stage: 0
         })
         .eq('id', id)
         .select()
