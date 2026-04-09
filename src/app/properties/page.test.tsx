@@ -73,11 +73,18 @@ describe('Properties Page', () => {
     })
   })
 
-  it('hides disqualified properties by default', async () => {
+  it('shows disqualified properties by default', async () => {
     render(<PropertiesPage />)
     await waitFor(() => {
-      // SIMMS is disqualified, should not be visible by default
-      expect(screen.queryByText(/SIMMS BEVERLY/i)).not.toBeInTheDocument()
+      // SIMMS is disqualified but should be visible — no client-side hiding
+      expect(screen.getByText(/SIMMS BEVERLY/i)).toBeInTheDocument()
+    })
+  })
+
+  it('does not render a Show Disqualified checkbox', async () => {
+    render(<PropertiesPage />)
+    await waitFor(() => {
+      expect(screen.queryByLabelText(/show disqualified/i)).not.toBeInTheDocument()
     })
   })
 
@@ -113,8 +120,8 @@ describe('Properties Page', () => {
   it('shows correct property count', async () => {
     render(<PropertiesPage />)
     await waitFor(() => {
-      // 4 visible (LAIESKI qualified, BLACKBURN new, HIGHLANDS new, PUTNAM NULL new), 1 disqualified hidden
-      expect(screen.getByText(/showing 4 of 5/i)).toBeInTheDocument()
+      // All 5 visible — disqualified no longer hidden client-side
+      expect(screen.getByText(/showing 5 of 5/i)).toBeInTheDocument()
     })
   })
 
@@ -238,11 +245,12 @@ describe('Properties Page', () => {
     await user.type(minAcreInput, '1')
     await user.clear(minAcreInput)
 
-    // back to default 4 visible
+    // back to default — all 5 visible (including disqualified)
     expect(screen.getByText(/LAIESKI JOHN EST/i)).toBeInTheDocument()
     expect(screen.getByText(/BLACKBURN MARY EST/i)).toBeInTheDocument()
     expect(screen.getByText(/HIGHLANDS TEST OWNER/i)).toBeInTheDocument()
     expect(screen.getByText(/PUTNAM NULL ACRE\/VALUE/i)).toBeInTheDocument()
+    expect(screen.getByText(/SIMMS BEVERLY/i)).toBeInTheDocument()
   })
 
   it('renders min/max value inputs', async () => {

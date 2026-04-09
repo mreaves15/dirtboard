@@ -4,50 +4,21 @@
 DirtBoard is a land deal pipeline tracker for Putnam County, FL land flipping.
 **Stack**: Next.js 16 + Supabase + Tailwind + shadcn/ui
 
-## ⚠️ CRITICAL RULE: TDD IS MANDATORY (HUMAN-RUNNER MODE)
+## ⚠️ CRITICAL RULE: TDD IS MANDATORY
 
-### TDD Enforcement Workflow (Strict Token Efficiency)
-**The AI writes the code. The Human runs the tests.**
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  🛑 HARD STOP: YOU MUST END YOUR RESPONSE AFTER WRITING TESTS  │
-│     DO NOT write implementation code in the same response!      │
-└─────────────────────────────────────────────────────────────────┘
-```
-
+### TDD Enforcement Workflow
 1. **WRITE TEST FIRST** - Create/update test file with assertions that WILL FAIL.
-2. **END RESPONSE** - Stop typing. Do NOT continue to implementation.
-3. **ASK FOR RED** - Your response MUST end with: "Please run the test to confirm RED: `npm run test:run`"
-4. **WAIT** - Do nothing until user replies with failure output or "RED confirmed".
-5. **THEN IMPLEMENT** - Only after RED confirmed, write minimal code to pass (GREEN).
-6. **REFACTOR** - Improve code while keeping tests green.
-
-### ❌ FORBIDDEN (Common Mistakes)
-- Writing test file AND implementation file in same response
-- Assuming tests will fail without user confirmation
-- Saying "this should fail" then immediately fixing it
-- Batching test updates with implementation updates
-- **Running tests yourself** - ALWAYS ask user to run them
-
-### ✅ CORRECT Response Pattern
-```
-[Write test file changes only]
-
----
-Please run the test to confirm RED:
-npm run test:run
-```
-Then STOP. Wait for user.
+2. **RUN TESTS** - Run `npm run test:run` to confirm RED.
+3. **IMPLEMENT** - Write minimal code to pass (GREEN).
+4. **RUN TESTS AGAIN** - Confirm GREEN.
+5. **REFACTOR** - Improve code while keeping tests green.
 
 **BLOCKING RULE**: If a test file doesn't exist for new code, create it FIRST.
 
 ## 💰 Token Efficiency Rules
 
 ### Terminal & Testing
-* **NO AUTOMATED TESTING**: Do NOT run `npm test`, `npm run test:run`, etc.
-* **Reason**: Prevents context bloat from massive terminal logs.
-* **Action**: Ask the user to run the command.
+* Run `npm run test:run` directly to verify RED/GREEN.
 
 ### Git & Large Files
 * **NO LOCKFILES**: Do not read `package-lock.json`.
@@ -128,7 +99,7 @@ npm run dev
 # Type check
 npx tsc --noEmit
 
-# Tests (USER runs these, not AI)
+# Tests
 npm run test:run
 
 # Lint

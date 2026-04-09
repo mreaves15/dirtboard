@@ -20,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import { useProperties } from '@/hooks/useProperties'
 import type { Property, PropertyStatus } from '@/types/database'
 
@@ -86,7 +85,7 @@ export default function PropertiesPage() {
   const { properties, loading, error } = useProperties({ status: statusFilter })
   const [search, setSearch] = useState('')
   const [countyFilter, setCountyFilter] = useState<string>('all')
-  const [showDisqualified, setShowDisqualified] = useState(false)
+
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null })
   const [acreageRange, setAcreageRange] = useState<RangeFilter>({ min: '', max: '' })
   const [valueRange, setValueRange] = useState<RangeFilter>({ min: '', max: '' })
@@ -111,9 +110,6 @@ export default function PropertiesPage() {
     return properties.filter(property => {
       // County filter
       if (countyFilter !== 'all' && property.county !== countyFilter) return false
-      
-      // Disqualified filter
-      if (!showDisqualified && property.status === 'disqualified') return false
       
       // Search filter
       if (search) {
@@ -157,7 +153,7 @@ export default function PropertiesPage() {
 
       return true
     })
-  }, [properties, search, countyFilter, showDisqualified, acreageRange, valueRange, dateFilter])
+  }, [properties, search, countyFilter, acreageRange, valueRange, dateFilter])
 
 
   const sortedProperties = useMemo(() => {
@@ -289,16 +285,6 @@ export default function PropertiesPage() {
             className="w-[160px]"
           />
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="showDisqualified"
-              checked={showDisqualified}
-              onCheckedChange={(checked) => setShowDisqualified(checked as boolean)}
-            />
-            <label htmlFor="showDisqualified" className="text-sm cursor-pointer">
-              Show Disqualified
-            </label>
-          </div>
         </div>
 
         {/* Results count */}
