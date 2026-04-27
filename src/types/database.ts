@@ -52,14 +52,16 @@ export type DisqualificationReason =
   | 'no_property'
   | 'wrong_person'
   | 'unplatted_complex'
+  // Owner motivation
+  | 'recent_arms_length_sale'
+  | 'hoa_buyer_pool_restriction'
   // Other
   | 'other'
 
-export type PropertyType = 
+export type PropertyType =
   | 'raw_land'
   | 'improved'
   | 'mobile_home'
-  | 'unknown'
 
 export type TaxStatus = 
   | 'current'
@@ -79,12 +81,7 @@ export type SellerType =
   | 'bank'
   | 'unknown'
 
-export type DealVerdict = 
-  | 'good_deal'
-  | 'maybe'
-  | 'pass'
-
-export type OfferStatus = 
+export type OfferStatus =
   | 'pending'
   | 'accepted'
   | 'rejected'
@@ -138,11 +135,10 @@ export interface Property {
   
   // Qualification Checks
   has_hoa?: boolean
-  hoa_fee?: number
+  annual_assessment?: number
   flood_zone?: string
   has_road_access?: boolean
   road_type?: string
-  has_power_at_road?: boolean
   is_landlocked?: boolean
   has_wetlands?: boolean
   allows_mobile_homes?: boolean
@@ -153,20 +149,17 @@ export interface Property {
   taxes_owed?: number
   years_delinquent?: number
   has_tax_certificate?: boolean
-  tax_sale_date?: string
-  
+
   // Liens & Title (Stage 6)
   has_liens?: boolean
   lien_details?: LienDetail[]
   has_mortgage?: boolean
-  mortgage_details?: string
   title_status?: TitleStatus
   
   // Motivation Indicators (Stage 9)
   is_out_of_state?: boolean
   is_inherited?: boolean
   is_long_term_holder?: boolean
-  is_tax_delinquent_motivated?: boolean
   seller_type?: SellerType
   
   // Valuation & Deal Math (Stage 8)
@@ -175,8 +168,7 @@ export interface Property {
   estimated_retail_value?: number
   target_offer_price?: number
   estimated_margin_percent?: number
-  deal_verdict?: DealVerdict
-  
+
   // Pipeline & Status
   status: PropertyStatus
   disqualification_reason?: DisqualificationReason

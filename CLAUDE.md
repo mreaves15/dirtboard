@@ -1,5 +1,7 @@
 # CLAUDE.md - DirtBoard AI Assistant Rules
 
+> Extends global `~/.claude/CLAUDE.md` (Think Before Acting, Simplicity, Surgical Changes, Goal-Driven, Stop-and-Report). DirtBoard-specific rules below.
+
 ## 🎯 Project Context
 DirtBoard is a land deal pipeline tracker for Putnam County, FL land flipping.
 **Stack**: Next.js 16 + Supabase + Tailwind + shadcn/ui

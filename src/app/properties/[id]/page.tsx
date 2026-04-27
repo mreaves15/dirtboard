@@ -6,7 +6,34 @@ import { Badge } from '@/components/ui/badge'
 import { useProperty } from '@/hooks/useProperties'
 import { usePropertyContacts } from '@/hooks/useContacts'
 import { usePropertyActivities } from '@/hooks/useActivities'
-import type { PropertyStatus, PropertyUpdate } from '@/types/database'
+import type { DisqualificationReason, PropertyStatus, PropertyUpdate } from '@/types/database'
+
+const disqualificationReasonLabels: Record<DisqualificationReason, string> = {
+  not_raw_land: 'Not raw land',
+  outlot: 'Outlot',
+  too_expensive: 'Too expensive (> $50K)',
+  flood_zone: 'Flood zone (not X)',
+  wetlands: 'Wetlands',
+  landlocked: 'Landlocked',
+  conservation_zoning: 'Conservation/Preservation zoning',
+  already_sold: 'Already sold',
+  already_transferred: 'Already transferred out of estate',
+  clouded_title: 'Clouded title',
+  has_liens: 'Has liens',
+  excessive_taxes: 'Excessive taxes',
+  tax_deed_pending: 'Tax deed pending',
+  weak_buyer_pool: 'Weak buyer pool',
+  insufficient_margin: 'Insufficient margin',
+  investor_owned: 'Investor-owned (LLC)',
+  parcel_not_found: 'Parcel not found in GIS',
+  no_pa_match: 'No PA match',
+  no_property: 'No property record',
+  wrong_person: 'Wrong person (name match failed)',
+  unplatted_complex: 'Unplatted / complex parcel',
+  recent_arms_length_sale: 'Recent arms-length sale (< 5 yrs)',
+  hoa_buyer_pool_restriction: 'HOA / restrictive CC&R',
+  other: 'Other',
+}
 
 const statusColors: Record<PropertyStatus, string> = {
   new: 'bg-gray-500',
@@ -81,6 +108,9 @@ export default function PropertyDetailPage({ params }: PageProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editForm, setEditForm] = useState<PropertyUpdate>({})
+  const [disqualifying, setDisqualifying] = useState(false)
+  const [dqReason, setDqReason] = useState<DisqualificationReason | ''>('')
+  const [dqNotes, setDqNotes] = useState('')
 
   function startEdit() {
     if (!property) return
@@ -138,27 +168,43 @@ export default function PropertyDetailPage({ params }: PageProps) {
     }
   }
 
-  async function handleDisqualify() {
+  function openDisqualify() {
     if (!property) return
-    const reason = window.prompt('Disqualification reason (e.g. flood_zone, taxes_owed, no_access):')
-    if (!reason) return
-    const notes = window.prompt('Additional notes (optional):') || ''
+    setDqReason(property.disqualification_reason ?? '')
+    setDqNotes(property.disqualification_notes ?? '')
+    setDisqualifying(true)
+  }
+
+  function cancelDisqualify() {
+    setDisqualifying(false)
+    setDqReason('')
+    setDqNotes('')
+  }
+
+  async function submitDisqualify() {
+    if (!property || !dqReason) return
+    setSaving(true)
     try {
       await update({
         status: 'disqualified',
-        disqualification_reason: reason as PropertyUpdate['disqualification_reason'],
-        disqualification_notes: notes,
+        disqualification_reason: dqReason,
+        disqualification_notes: dqNotes || undefined,
       })
       await logActivity({
         property_id: id,
         activity_type: 'status_change',
         activity_date: new Date().toISOString(),
-        notes: `Disqualified: ${reason}${notes ? ' — ' + notes : ''}`,
+        notes: `Disqualified: ${dqReason}${dqNotes ? ' — ' + dqNotes : ''}`,
         created_by: 'user',
       })
       await refetchActivities()
+      setDisqualifying(false)
+      setDqReason('')
+      setDqNotes('')
     } catch (err) {
       alert('Failed: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -299,7 +345,7 @@ export default function PropertyDetailPage({ params }: PageProps) {
                 ✓ Qualify
               </button>
               <button
-                onClick={handleDisqualify}
+                onClick={openDisqualify}
                 className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
               >
                 ✗ Disqualify
@@ -320,6 +366,53 @@ export default function PropertyDetailPage({ params }: PageProps) {
           )}
         </div>
 
+        {disqualifying && (
+          <section className="border border-red-200 bg-red-50 rounded-lg p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-4 text-red-800">Disqualify Property</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-red-700 block mb-1">Disqualification Reason</label>
+                <select
+                  className="border rounded px-2 py-1 w-full text-sm bg-white"
+                  value={dqReason}
+                  onChange={e => setDqReason(e.target.value as DisqualificationReason | '')}
+                >
+                  <option value="">Select a reason...</option>
+                  {(Object.keys(disqualificationReasonLabels) as DisqualificationReason[]).map(r => (
+                    <option key={r} value={r}>{disqualificationReasonLabels[r]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-red-700 block mb-1">Notes (optional)</label>
+                <textarea
+                  className="border rounded px-2 py-1 w-full text-sm bg-white"
+                  rows={3}
+                  value={dqNotes}
+                  onChange={e => setDqNotes(e.target.value)}
+                  placeholder="Additional context (e.g., subdivision, FEMA zone, why disqualified)"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={submitDisqualify}
+                  disabled={!dqReason || saving}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-60"
+                >
+                  {saving ? 'Saving...' : '✗ Confirm Disqualify'}
+                </button>
+                <button
+                  onClick={cancelDisqualify}
+                  disabled={saving}
+                  className="border px-4 py-2 rounded-md hover:bg-muted disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Property Details */}
           <div className="lg:col-span-2 space-y-8">
@@ -336,12 +429,9 @@ export default function PropertyDetailPage({ params }: PageProps) {
                       onChange={e => setEditForm(f => ({ ...f, property_type: e.target.value as PropertyUpdate['property_type'] }))}
                     >
                       <option value="">Select...</option>
-                      <option value="vacant_land">Vacant Land</option>
-                      <option value="residential">Residential</option>
-                      <option value="commercial">Commercial</option>
-                      <option value="agricultural">Agricultural</option>
+                      <option value="raw_land">Raw Land</option>
+                      <option value="improved">Improved</option>
                       <option value="mobile_home">Mobile Home</option>
-                      <option value="other">Other</option>
                     </select>
                   ) : (
                     <p className="font-medium capitalize">{property.property_type?.replace('_', ' ') || '-'}</p>
@@ -470,10 +560,6 @@ export default function PropertyDetailPage({ params }: PageProps) {
                     {property.estimated_margin_percent ? `${property.estimated_margin_percent}%` : '-'}
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Deal Verdict</p>
-                  <p className="font-medium capitalize">{property.deal_verdict?.replace('_', ' ') || '-'}</p>
-                </div>
               </div>
             </section>
 
@@ -525,9 +611,6 @@ export default function PropertyDetailPage({ params }: PageProps) {
                 )}
                 {property.is_long_term_holder && (
                   <Badge variant="outline">Long-term Holder (10+ yrs)</Badge>
-                )}
-                {property.is_tax_delinquent_motivated && (
-                  <Badge variant="outline">Tax Delinquent</Badge>
                 )}
                 {property.seller_type && (
                   <Badge variant="outline" className="capitalize">{property.seller_type}</Badge>

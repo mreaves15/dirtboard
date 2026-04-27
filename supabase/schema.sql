@@ -26,15 +26,14 @@ CREATE TABLE properties (
   market_value INTEGER,
   dor_code TEXT,
   zoning TEXT,
-  property_type TEXT DEFAULT 'unknown',
+  property_type TEXT CHECK (property_type IN ('raw_land', 'improved', 'mobile_home')),
   
   -- Qualification Checks
   has_hoa BOOLEAN,
-  hoa_fee DECIMAL,
+  annual_assessment DECIMAL,
   flood_zone TEXT,
   has_road_access BOOLEAN,
   road_type TEXT,
-  has_power_at_road BOOLEAN,
   is_landlocked BOOLEAN,
   has_wetlands BOOLEAN,
   allows_mobile_homes BOOLEAN,
@@ -45,20 +44,17 @@ CREATE TABLE properties (
   taxes_owed DECIMAL,
   years_delinquent INTEGER,
   has_tax_certificate BOOLEAN,
-  tax_sale_date DATE,
-  
+
   -- Liens & Title (Stage 6)
   has_liens BOOLEAN,
   lien_details JSONB,
   has_mortgage BOOLEAN,
-  mortgage_details TEXT,
   title_status TEXT,
   
   -- Motivation Indicators
   is_out_of_state BOOLEAN,
   is_inherited BOOLEAN,
   is_long_term_holder BOOLEAN,
-  is_tax_delinquent_motivated BOOLEAN,
   seller_type TEXT,
   
   -- Valuation & Deal Math (Stage 8)
@@ -67,11 +63,16 @@ CREATE TABLE properties (
   estimated_retail_value DECIMAL,
   target_offer_price DECIMAL,
   estimated_margin_percent DECIMAL,
-  deal_verdict TEXT,
-  
+
   -- Pipeline & Status
   status TEXT NOT NULL DEFAULT 'new',
-  disqualification_reason TEXT,
+  disqualification_reason TEXT CHECK (disqualification_reason IN (
+    'not_raw_land','outlot','too_expensive','flood_zone','wetlands','landlocked','conservation_zoning',
+    'already_sold','already_transferred','clouded_title','has_liens','excessive_taxes','tax_deed_pending',
+    'weak_buyer_pool','insufficient_margin','investor_owned',
+    'parcel_not_found','no_pa_match','no_property','wrong_person','unplatted_complex',
+    'recent_arms_length_sale','hoa_buyer_pool_restriction','other'
+  )),
   disqualification_notes TEXT,
 
   
