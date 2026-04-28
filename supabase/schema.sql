@@ -80,7 +80,9 @@ CREATE TABLE properties (
   offer_amount DECIMAL,
   offer_date DATE,
   counter_amount DECIMAL,
-  offer_status TEXT,
+  offer_status TEXT CHECK (offer_status IS NULL OR offer_status IN (
+    'pending','accepted','rejected','countered','expired'
+  )),
   buy_accepted DECIMAL,
   closing_date DATE,
   buy_final DECIMAL,
