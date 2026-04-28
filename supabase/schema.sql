@@ -81,10 +81,10 @@ CREATE TABLE properties (
   offer_date DATE,
   counter_amount DECIMAL,
   offer_status TEXT,
-  accepted_price DECIMAL,
+  buy_accepted DECIMAL,
   closing_date DATE,
-  actual_purchase_price DECIMAL,
-  sale_price DECIMAL,
+  buy_final DECIMAL,
+  resale_price DECIMAL,
   actual_profit DECIMAL,
   
   -- Notes

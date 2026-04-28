@@ -180,10 +180,10 @@ export interface Property {
   offer_date?: string
   counter_amount?: number
   offer_status?: OfferStatus
-  accepted_price?: number
+  buy_accepted?: number
   closing_date?: string
-  actual_purchase_price?: number
-  sale_price?: number
+  buy_final?: number
+  resale_price?: number
   actual_profit?: number
   
   // Notes
