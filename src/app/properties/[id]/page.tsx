@@ -8,6 +8,240 @@ import { usePropertyContacts } from '@/hooks/useContacts'
 import { usePropertyActivities } from '@/hooks/useActivities'
 import type { DisqualificationReason, PropertyStatus, PropertyUpdate } from '@/types/database'
 
+type DealAction = 'offer' | 'counter' | 'accept' | 'reject' | 'close_won' | 'close_lost' | 'list' | 'sold'
+
+interface DealForm {
+  offer_amount: string
+  offer_date: string
+  counter_amount: string
+  buy_accepted: string
+  buy_final: string
+  closing_date: string
+  resale_price: string
+  actual_profit: string
+}
+
+const emptyDealForm: DealForm = {
+  offer_amount: '',
+  offer_date: '',
+  counter_amount: '',
+  buy_accepted: '',
+  buy_final: '',
+  closing_date: '',
+  resale_price: '',
+  actual_profit: '',
+}
+
+function parseNum(v: string): number | undefined {
+  if (!v || v.trim() === '') return undefined
+  const n = parseFloat(v)
+  return Number.isFinite(n) ? n : undefined
+}
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+const dealActionTitles: Record<DealAction, string> = {
+  offer: 'Make Offer',
+  counter: 'Log Counter',
+  accept: 'Mark Accepted',
+  reject: 'Mark Rejected',
+  close_won: 'Mark Closed Won',
+  close_lost: 'Mark Closed Lost',
+  list: 'List For Sale',
+  sold: 'Mark Sold',
+}
+
+const dealConfirmLabels: Record<DealAction, string> = {
+  offer: 'Confirm Offer',
+  counter: 'Confirm Counter',
+  accept: 'Confirm Accept',
+  reject: 'Confirm Reject',
+  close_won: 'Confirm Closed Won',
+  close_lost: 'Confirm Closed Lost',
+  list: 'Confirm List',
+  sold: 'Confirm Sold',
+}
+
+interface DealActionPanelProps {
+  action: DealAction
+  form: DealForm
+  saving: boolean
+  buyFinal: number | undefined
+  onChange: (patch: Partial<DealForm>) => void
+  onResaleChange: (v: string) => void
+  onCancel: () => void
+  onSubmit: () => void
+}
+
+function DealActionPanel({ action, form, saving, buyFinal, onChange, onResaleChange, onCancel, onSubmit }: DealActionPanelProps) {
+  const canSubmit = (() => {
+    switch (action) {
+      case 'offer': return parseNum(form.offer_amount) != null && form.offer_date !== ''
+      case 'counter': return parseNum(form.counter_amount) != null
+      case 'accept': return parseNum(form.buy_accepted) != null
+      case 'close_won': return parseNum(form.buy_final) != null && form.closing_date !== ''
+      case 'sold': return parseNum(form.resale_price) != null
+      case 'reject':
+      case 'close_lost':
+      case 'list':
+        return true
+    }
+  })()
+
+  return (
+    <section className="border border-orange-200 bg-orange-50 rounded-lg p-6 mb-8">
+      <h2 className="text-xl font-semibold mb-4 text-orange-900">{dealActionTitles[action]}</h2>
+      <div className="space-y-4">
+        {action === 'offer' && (
+          <>
+            <div>
+              <label htmlFor="deal-offer-amount" className="text-sm text-orange-800 block mb-1">Offer Amount</label>
+              <input
+                id="deal-offer-amount"
+                type="number"
+                className="border rounded px-2 py-1 w-full text-sm bg-white"
+                value={form.offer_amount}
+                onChange={e => onChange({ offer_amount: e.target.value })}
+                placeholder="e.g. 8500"
+              />
+            </div>
+            <div>
+              <label htmlFor="deal-offer-date" className="text-sm text-orange-800 block mb-1">Offer Date</label>
+              <input
+                id="deal-offer-date"
+                type="date"
+                className="border rounded px-2 py-1 w-full text-sm bg-white"
+                value={form.offer_date}
+                onChange={e => onChange({ offer_date: e.target.value })}
+              />
+            </div>
+          </>
+        )}
+
+        {action === 'counter' && (
+          <div>
+            <label htmlFor="deal-counter-amount" className="text-sm text-orange-800 block mb-1">Counter Amount</label>
+            <input
+              id="deal-counter-amount"
+              type="number"
+              className="border rounded px-2 py-1 w-full text-sm bg-white"
+              value={form.counter_amount}
+              onChange={e => onChange({ counter_amount: e.target.value })}
+              placeholder="Their counter offer"
+            />
+          </div>
+        )}
+
+        {action === 'accept' && (
+          <div>
+            <label htmlFor="deal-buy-accepted" className="text-sm text-orange-800 block mb-1">Accepted Price</label>
+            <input
+              id="deal-buy-accepted"
+              type="number"
+              className="border rounded px-2 py-1 w-full text-sm bg-white"
+              value={form.buy_accepted}
+              onChange={e => onChange({ buy_accepted: e.target.value })}
+            />
+          </div>
+        )}
+
+        {action === 'reject' && (
+          <p className="text-sm text-orange-800">Mark this offer as rejected and close the lead.</p>
+        )}
+
+        {action === 'close_won' && (
+          <>
+            <div>
+              <label htmlFor="deal-buy-final" className="text-sm text-orange-800 block mb-1">Final Purchase Price</label>
+              <input
+                id="deal-buy-final"
+                type="number"
+                className="border rounded px-2 py-1 w-full text-sm bg-white"
+                value={form.buy_final}
+                onChange={e => onChange({ buy_final: e.target.value })}
+                placeholder="Actual cash to seller (incl. any cost adjustments)"
+              />
+            </div>
+            <div>
+              <label htmlFor="deal-closing-date" className="text-sm text-orange-800 block mb-1">Closing Date</label>
+              <input
+                id="deal-closing-date"
+                type="date"
+                className="border rounded px-2 py-1 w-full text-sm bg-white"
+                value={form.closing_date}
+                onChange={e => onChange({ closing_date: e.target.value })}
+              />
+            </div>
+          </>
+        )}
+
+        {action === 'close_lost' && (
+          <p className="text-sm text-orange-800">Mark this deal as closed lost (deal fell through).</p>
+        )}
+
+        {action === 'list' && (
+          <p className="text-sm text-orange-800">Move this property to listed-for-sale.</p>
+        )}
+
+        {action === 'sold' && (
+          <>
+            <div>
+              <label htmlFor="deal-resale-price" className="text-sm text-orange-800 block mb-1">Resale Price</label>
+              <input
+                id="deal-resale-price"
+                type="number"
+                className="border rounded px-2 py-1 w-full text-sm bg-white"
+                value={form.resale_price}
+                onChange={e => onResaleChange(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="deal-actual-profit" className="text-sm text-orange-800 block mb-1">
+                Actual Profit
+                {buyFinal != null && <span className="text-xs text-orange-600 ml-2">(auto = resale − buy_final)</span>}
+              </label>
+              <input
+                id="deal-actual-profit"
+                type="number"
+                className="border rounded px-2 py-1 w-full text-sm bg-white"
+                value={form.actual_profit}
+                onChange={e => onChange({ actual_profit: e.target.value })}
+              />
+            </div>
+          </>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={onSubmit}
+            disabled={!canSubmit || saving}
+            className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 disabled:opacity-60"
+          >
+            {saving ? 'Saving...' : dealConfirmLabels[action]}
+          </button>
+          <button
+            onClick={onCancel}
+            disabled={saving}
+            className="border px-4 py-2 rounded-md hover:bg-muted disabled:opacity-60"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const offerStatusColors: Record<string, string> = {
+  pending: 'bg-yellow-500',
+  countered: 'bg-amber-500',
+  accepted: 'bg-green-500',
+  rejected: 'bg-red-500',
+  expired: 'bg-gray-500',
+}
+
 const disqualificationReasonLabels: Record<DisqualificationReason, string> = {
   not_raw_land: 'Not raw land',
   outlot: 'Outlot',
@@ -111,6 +345,8 @@ export default function PropertyDetailPage({ params }: PageProps) {
   const [disqualifying, setDisqualifying] = useState(false)
   const [dqReason, setDqReason] = useState<DisqualificationReason | ''>('')
   const [dqNotes, setDqNotes] = useState('')
+  const [dealAction, setDealAction] = useState<DealAction | null>(null)
+  const [dealForm, setDealForm] = useState<DealForm>(emptyDealForm)
 
   function startEdit() {
     if (!property) return
@@ -201,6 +437,148 @@ export default function PropertyDetailPage({ params }: PageProps) {
       setDisqualifying(false)
       setDqReason('')
       setDqNotes('')
+    } catch (err) {
+      alert('Failed: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function openDeal(action: DealAction) {
+    if (!property) return
+    const next: DealForm = { ...emptyDealForm }
+    switch (action) {
+      case 'offer':
+        next.offer_amount = property.target_offer_price != null ? String(property.target_offer_price) : ''
+        next.offer_date = todayISO()
+        break
+      case 'counter':
+        next.counter_amount = property.counter_amount != null ? String(property.counter_amount) : ''
+        break
+      case 'accept': {
+        const seed = property.counter_amount ?? property.offer_amount
+        next.buy_accepted = seed != null ? String(seed) : ''
+        break
+      }
+      case 'close_won':
+        next.buy_final = property.buy_accepted != null ? String(property.buy_accepted) : ''
+        next.closing_date = property.closing_date ?? todayISO()
+        break
+      case 'sold':
+        next.resale_price = property.resale_price != null ? String(property.resale_price) : ''
+        next.actual_profit = property.actual_profit != null ? String(property.actual_profit) : ''
+        break
+      case 'reject':
+      case 'close_lost':
+      case 'list':
+        // no fields
+        break
+    }
+    setDealForm(next)
+    setDealAction(action)
+  }
+
+  function cancelDeal() {
+    setDealAction(null)
+    setDealForm(emptyDealForm)
+  }
+
+  function onResaleChange(v: string) {
+    setDealForm(f => {
+      const resale = parseNum(v)
+      const buy = property?.buy_final ?? parseNum(f.buy_final)
+      const profit = resale != null && buy != null ? String(resale - buy) : f.actual_profit
+      return { ...f, resale_price: v, actual_profit: profit }
+    })
+  }
+
+  async function submitDeal() {
+    if (!property || !dealAction) return
+    const updates: PropertyUpdate = {}
+    let activityType: 'offer' | 'status_change' = 'status_change'
+    let activityNote = ''
+
+    switch (dealAction) {
+      case 'offer': {
+        const amt = parseNum(dealForm.offer_amount)
+        if (amt == null || !dealForm.offer_date) return
+        updates.status = 'offer_made'
+        updates.offer_status = 'pending'
+        updates.offer_amount = amt
+        updates.offer_date = dealForm.offer_date
+        activityType = 'offer'
+        activityNote = `Offer made: $${amt.toLocaleString()} on ${dealForm.offer_date}`
+        break
+      }
+      case 'counter': {
+        const amt = parseNum(dealForm.counter_amount)
+        if (amt == null) return
+        updates.status = 'negotiating'
+        updates.offer_status = 'countered'
+        updates.counter_amount = amt
+        activityType = 'offer'
+        activityNote = `Counter received: $${amt.toLocaleString()}`
+        break
+      }
+      case 'accept': {
+        const amt = parseNum(dealForm.buy_accepted)
+        if (amt == null) return
+        updates.status = 'under_contract'
+        updates.offer_status = 'accepted'
+        updates.buy_accepted = amt
+        activityNote = `Offer accepted at $${amt.toLocaleString()} — under contract`
+        break
+      }
+      case 'reject': {
+        updates.status = 'closed_lost'
+        updates.offer_status = 'rejected'
+        activityNote = 'Offer rejected — closed lost'
+        break
+      }
+      case 'close_won': {
+        const amt = parseNum(dealForm.buy_final)
+        if (amt == null || !dealForm.closing_date) return
+        updates.status = 'closed_won'
+        updates.buy_final = amt
+        updates.closing_date = dealForm.closing_date
+        activityNote = `Closed won: paid $${amt.toLocaleString()} on ${dealForm.closing_date}`
+        break
+      }
+      case 'close_lost': {
+        updates.status = 'closed_lost'
+        activityNote = 'Closed lost'
+        break
+      }
+      case 'list': {
+        updates.status = 'listed_for_sale'
+        activityNote = 'Listed for sale'
+        break
+      }
+      case 'sold': {
+        const resale = parseNum(dealForm.resale_price)
+        if (resale == null) return
+        const buy = property.buy_final
+        const profit = parseNum(dealForm.actual_profit) ?? (buy != null ? resale - buy : undefined)
+        updates.status = 'sold'
+        updates.resale_price = resale
+        if (profit != null) updates.actual_profit = profit
+        activityNote = `Sold for $${resale.toLocaleString()}${profit != null ? ` (profit $${profit.toLocaleString()})` : ''}`
+        break
+      }
+    }
+
+    setSaving(true)
+    try {
+      await update(updates)
+      await logActivity({
+        property_id: id,
+        activity_type: activityType,
+        activity_date: new Date().toISOString(),
+        notes: activityNote,
+        created_by: 'user',
+      })
+      await refetchActivities()
+      cancelDeal()
     } catch (err) {
       alert('Failed: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
@@ -365,6 +743,87 @@ export default function PropertyDetailPage({ params }: PageProps) {
             </>
           )}
         </div>
+
+        {/* Deal-stage action buttons */}
+        {!isEditing && !disqualifying && !dealAction && (
+          <div className="flex flex-wrap gap-2 mb-8">
+            {(property.status === 'qualified' || property.status === 'contacted') && (
+              <button
+                onClick={() => openDeal('offer')}
+                className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700"
+              >
+                💰 Make Offer
+              </button>
+            )}
+            {(property.status === 'offer_made' || property.status === 'negotiating') && (
+              <>
+                <button
+                  onClick={() => openDeal('counter')}
+                  className="bg-amber-600 text-white px-4 py-2 rounded-md hover:bg-amber-700"
+                >
+                  ↔ Log Counter
+                </button>
+                <button
+                  onClick={() => openDeal('accept')}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                >
+                  ✓ Mark Accepted
+                </button>
+                <button
+                  onClick={() => openDeal('reject')}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                >
+                  ✗ Mark Rejected
+                </button>
+              </>
+            )}
+            {property.status === 'under_contract' && (
+              <>
+                <button
+                  onClick={() => openDeal('close_won')}
+                  className="bg-green-700 text-white px-4 py-2 rounded-md hover:bg-green-800"
+                >
+                  🏁 Mark Closed Won
+                </button>
+                <button
+                  onClick={() => openDeal('close_lost')}
+                  className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+                >
+                  ✗ Mark Closed Lost
+                </button>
+              </>
+            )}
+            {property.status === 'closed_won' && (
+              <button
+                onClick={() => openDeal('list')}
+                className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700"
+              >
+                🪧 List For Sale
+              </button>
+            )}
+            {property.status === 'listed_for_sale' && (
+              <button
+                onClick={() => openDeal('sold')}
+                className="bg-green-800 text-white px-4 py-2 rounded-md hover:bg-green-900"
+              >
+                💵 Mark Sold
+              </button>
+            )}
+          </div>
+        )}
+
+        {dealAction && (
+          <DealActionPanel
+            action={dealAction}
+            form={dealForm}
+            saving={saving}
+            buyFinal={property.buy_final}
+            onChange={(patch) => setDealForm(f => ({ ...f, ...patch }))}
+            onResaleChange={onResaleChange}
+            onCancel={cancelDeal}
+            onSubmit={submitDeal}
+          />
+        )}
 
         {disqualifying && (
           <section className="border border-red-200 bg-red-50 rounded-lg p-6 mb-8">
@@ -598,6 +1057,89 @@ export default function PropertyDetailPage({ params }: PageProps) {
                 </div>
               </div>
             </section>
+
+            {/* Deal */}
+            {(() => {
+              const dealStages: PropertyStatus[] = [
+                'offer_made', 'negotiating', 'under_contract',
+                'closed_won', 'closed_lost', 'listed_for_sale', 'sold',
+              ]
+              const hasDealData =
+                property.offer_amount != null ||
+                property.offer_date != null ||
+                property.counter_amount != null ||
+                property.offer_status != null ||
+                property.buy_accepted != null ||
+                property.closing_date != null ||
+                property.buy_final != null ||
+                property.resale_price != null ||
+                property.actual_profit != null
+              const showDeal = dealStages.includes(property.status) || hasDealData
+              if (!showDeal) return null
+              return (
+                <section className="border rounded-lg p-6">
+                  <h2 className="text-xl font-semibold mb-4">Deal</h2>
+
+                  {/* Offer block */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Offer Amount</p>
+                      <p className="font-medium">{formatCurrency(property.offer_amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Offer Date</p>
+                      <p className="font-medium">{formatDate(property.offer_date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Counter Amount</p>
+                      <p className="font-medium">{formatCurrency(property.counter_amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Offer Status</p>
+                      {property.offer_status ? (
+                        <Badge className={offerStatusColors[property.offer_status] ?? 'bg-gray-500'}>
+                          {property.offer_status}
+                        </Badge>
+                      ) : (
+                        <p className="font-medium">-</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Closing block */}
+                  {(property.buy_accepted != null || property.closing_date != null || property.buy_final != null) && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Accepted Price</p>
+                        <p className="font-medium">{formatCurrency(property.buy_accepted)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Closing Date</p>
+                        <p className="font-medium">{formatDate(property.closing_date)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Final Purchase Price</p>
+                        <p className="font-medium">{formatCurrency(property.buy_final)}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Resale block */}
+                  {(property.resale_price != null || property.actual_profit != null) && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Resale Price</p>
+                        <p className="font-medium">{formatCurrency(property.resale_price)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Actual Profit</p>
+                        <p className="font-medium text-green-600">{formatCurrency(property.actual_profit)}</p>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )
+            })()}
 
             {/* Motivation Indicators */}
             <section className="border rounded-lg p-6">

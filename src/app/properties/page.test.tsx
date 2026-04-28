@@ -120,8 +120,8 @@ describe('Properties Page', () => {
   it('shows correct property count', async () => {
     render(<PropertiesPage />)
     await waitFor(() => {
-      // All 5 visible — disqualified no longer hidden client-side
-      expect(screen.getByText(/showing 5 of 5/i)).toBeInTheDocument()
+      // All 10 visible — disqualified no longer hidden client-side
+      expect(screen.getByText(/showing 10 of 10/i)).toBeInTheDocument()
     })
   })
 
