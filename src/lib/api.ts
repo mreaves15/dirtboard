@@ -18,18 +18,33 @@ import type {
 // ============ Properties ============
 
 export async function getProperties(filters?: { status?: string }) {
-  let query = supabase
-    .from('properties')
-    .select('*')
+  // PostgREST caps a single response at 1000 rows, so page through everything.
+  const PAGE_SIZE = 1000
+  const all: Property[] = []
+  let offset = 0
 
-  if (filters?.status && filters.status !== 'all') {
-    query = query.eq('status', filters.status)
+  while (true) {
+    let query = supabase
+      .from('properties')
+      .select('*')
+
+    if (filters?.status && filters.status !== 'all') {
+      query = query.eq('status', filters.status)
+    }
+
+    const { data, error } = await query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1)
+
+    if (error) throw error
+    if (!data || data.length === 0) break
+
+    all.push(...(data as Property[]))
+    if (data.length < PAGE_SIZE) break
+    offset += PAGE_SIZE
   }
 
-  const { data, error } = await query.order('created_at', { ascending: false })
-
-  if (error) throw error
-  return data as Property[]
+  return all
 }
 
 export async function getProperty(id: string) {
