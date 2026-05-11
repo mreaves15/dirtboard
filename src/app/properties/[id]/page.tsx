@@ -329,6 +329,12 @@ function formatDate(dateStr: string | undefined): string {
   })
 }
 
+function formatBool(value: boolean | undefined): string {
+  if (value === true) return 'Yes'
+  if (value === false) return 'No'
+  return '-'
+}
+
 interface PageProps {
   params: Promise<{ id: string }>
 }
@@ -1023,6 +1029,48 @@ export default function PropertyDetailPage({ params }: PageProps) {
             </section>
 
             {/* Tax Status */}
+            <section className="border rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Qualification Checks</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Flood Zone</p>
+                  <p className="font-medium">{property.flood_zone || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Wetlands</p>
+                  <p className="font-medium">{formatBool(property.has_wetlands)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Road Access</p>
+                  <p className="font-medium">{formatBool(property.has_road_access)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Road Type</p>
+                  <p className="font-medium">{property.road_type || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Landlocked</p>
+                  <p className="font-medium">{formatBool(property.is_landlocked)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">HOA</p>
+                  <p className="font-medium">{formatBool(property.has_hoa)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Annual Assessment</p>
+                  <p className="font-medium">{formatCurrency(property.annual_assessment)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Mobile Homes</p>
+                  <p className="font-medium">{formatBool(property.allows_mobile_homes)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Zoning</p>
+                  <p className="font-medium">{property.zoning || '-'}</p>
+                </div>
+              </div>
+            </section>
+
             <section className="border rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4">Tax Status</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

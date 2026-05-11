@@ -110,6 +110,27 @@ describe('Property Detail Page', () => {
     expect(screen.getByText(/0.22/)).toBeInTheDocument() // acreage
   })
 
+  it('renders qualification checks section with structured DD fields', async () => {
+    await renderWithParams('prop-1')
+    const section = screen.getByText(/Qualification Checks/i).closest('section')
+    expect(section).not.toBeNull()
+    const s = within(section!)
+    // flood + wetlands
+    expect(s.getByText(/Flood Zone/i)).toBeInTheDocument()
+    expect(s.getByText('X')).toBeInTheDocument()
+    expect(s.getByText(/Wetlands/i)).toBeInTheDocument()
+    // road / access
+    expect(s.getByText(/Road Access/i)).toBeInTheDocument()
+    expect(s.getByText(/Road Type/i)).toBeInTheDocument()
+    expect(s.getByText('paved')).toBeInTheDocument()
+    expect(s.getByText(/Landlocked/i)).toBeInTheDocument()
+    // hoa / mobile / zoning
+    expect(s.getByText(/^HOA$/i)).toBeInTheDocument()
+    expect(s.getByText(/Mobile Homes/i)).toBeInTheDocument()
+    expect(s.getByText(/Zoning/i)).toBeInTheDocument()
+    expect(s.getByText('R1')).toBeInTheDocument()
+  })
+
   it('renders contacts section with contact data', async () => {
     await renderWithParams('prop-1')
     expect(screen.getByText(/Contacts/i)).toBeInTheDocument()
