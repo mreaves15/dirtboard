@@ -303,6 +303,7 @@ export function getPipelineStats(properties: Property[]) {
     total: properties.length,
     byStatus: {} as Record<string, number>,
     byCounty: {} as Record<string, number>,
+    byDqReason: {} as Record<string, number>,
     qualified: 0,
     disqualified: 0,
     active: 0,
@@ -311,10 +312,16 @@ export function getPipelineStats(properties: Property[]) {
   properties.forEach(p => {
     stats.byStatus[p.status] = (stats.byStatus[p.status] || 0) + 1
     stats.byCounty[p.county] = (stats.byCounty[p.county] || 0) + 1
-    
-    if (p.status === 'qualified') stats.qualified++
-    else if (p.status === 'disqualified') stats.disqualified++
-    else stats.active++
+
+    if (p.status === 'qualified') {
+      stats.qualified++
+    } else if (p.status === 'disqualified') {
+      stats.disqualified++
+      const reason = p.disqualification_reason || 'unspecified'
+      stats.byDqReason[reason] = (stats.byDqReason[reason] || 0) + 1
+    } else {
+      stats.active++
+    }
   })
 
   return stats

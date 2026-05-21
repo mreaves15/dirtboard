@@ -27,3 +27,7 @@ _Source: [2026-04-19 properties schema audit](./audits/2026-04-19-properties-sch
 - [ ] **[low]** Surface physical-access fields: `has_road_access` (138), `road_type` (121), `is_landlocked` (85), `allows_mobile_homes` (222).
 - [ ] **[low]** Display `has_wetlands` badge on list/detail views (1279 rows populated, never shown).
 - [ ] **[low]** Add lien viewer for `lien_details` JSONB — 9 rows have structured data, never rendered.
+
+## Performance
+
+- [ ] **[med]** Dashboard fetches every `properties` row (~4,200 rows, 5 paged requests, ~5s "Loading…") via `useProperties()` just to compute counts. Replace with server-side aggregation — a `count`-grouped query or a Supabase view/RPC returning status / county / DQ-reason tallies — so the dashboard loads near-instantly. Added 2026-05-21 alongside the dashboard live-data fix.
